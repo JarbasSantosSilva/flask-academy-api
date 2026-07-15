@@ -13,6 +13,7 @@ def listar_cursos():
     conn.close()
     return jsonify(cursos)
 
+
 @cursos_bp.post('/')
 def cadastrar_curso():
     dados = request.get_json()
@@ -59,6 +60,50 @@ def excluir_curso(id):
     cursor.close()
     conn.close()
     return jsonify({"Aviso" : f'Curso com ID {id} excluido com sucesso ! '}), 200
+
+@cursos_bp.patch('/<int:id>')
+def atualizar_cursos_parcial(id):
+    dados = request.get_json()
+
+    if not dados :
+        return jsonify({"Erro": "Nenhum dado enviado!"}),400
+
+    campos_para_atualizar = []
+    valores = []
+
+    if "nome" in dados:
+        campos_para_atualizar.append("nome = %s")
+        valores.append(dados.get("nome"))
+    if "carga" in dados:
+        campos_para_atualizar.append("carga = %s")
+        valores.append(dados.get("carga"))
+    if "ano" in dados:
+        campos_para_atualizar.append("ano = %s")
+        valores.append(dados.get("ano"))
+    if "totaulas" in dados:
+        campos_para_atualizar.append("totaulas = %s")
+        valores.append(dados.get("totaulas"))
+    if "descricao" in dados:
+        campos_para_atualizar.append("descricao = %s")
+        valores.append(dados.get("descricao"))
+    if not campos_para_atualizar:
+        return jsonify({"Erro": "Nenhum dado enviado para atualizar!"}),400
+
+
+    valores.append(id)
+
+    comando_sql = f"update cursos set {',' .join(campos_para_atualizar)} where idcurso = %s ;"
+
+    conn = obter_conexao()
+    cursor = conn.cursor()
+    cursor.execute(comando_sql, tuple(valores) )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({"Mensagem": f"Curso com id : {id} atualizado com sucesso!"}), 200
+
+
     
                     
 
