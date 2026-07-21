@@ -1,107 +1,201 @@
 from flask import Blueprint, request, jsonify
 from banco import obter_conexao
+import mysql.connector
 
 cursos_bp = Blueprint('cursos',__name__, url_prefix='/cursos')
 
 @cursos_bp.get('/')
 def listar_cursos():
-    conn = obter_conexao()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("select * from cursos")
-    cursos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(cursos)
+    conn = None
+    cursor = None
+    try:
+
+        conn = obter_conexao()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("select * from cursos")
+        cursos = cursor.fetchall()
+        
+        return jsonify(cursos)
+    except mysql.connector.Error as erro_banco:
+        return jsonify({"ERRO": "Erro com o banco de dados.", "Detalhes": str(erro_banco)}),500
+    except Exception as erro :
+        return jsonify({"Erro": f"Erro inesperado {str(erro)}"}),500
+    
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @cursos_bp.post('/')
 def cadastrar_curso():
-    dados = request.get_json()
-    nome = dados.get("nome")
-    carga = dados.get("carga")
-    ano = dados.get("ano")
-    totaulas = dados.get("totaulas")
-    descricao = dados.get("descricao")
+    cursor = None
+    conn = None
+    try:
+        dados = request.get_json()
+        if not dados:
+            return jsonify({"Erro": "Nenhum dado enviado."}),400
+        
+        if "nome" not in dados or "carga_horaria" not in dados or "descricao" not in dados or "professor_id" not in dados:
+            return jsonify({"Erro": "Envio de dados incompletos."}),400
+        
+        nome = dados.get("nome")
+        carga_horaria = dados.get("carga_horaria")
+        professor_id = dados.get("professor_id")
+        descricao = dados.get("descricao")
 
-    conn = obter_conexao()
-    cursor = conn.cursor()
-    cursor.execute("insert into cursos (nome, carga, ano, totaulas, descricao) values (%s, %s, %s,%s, %s);",(nome, carga, ano, totaulas, descricao))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return jsonify({"Aviso": f'Novo curso : {nome} adicionado!'}), 201
+        conn = obter_conexao()
+        cursor = conn.cursor()
+        cursor.execute("insert into cursos (nome, carga_horaria, professor_id,  descricao) values (%s, %s, %s,%s);",(nome, carga_horaria, professor_id, descricao))
+        conn.commit()
+        
+        return jsonify({"Aviso": f'Novo curso : {nome} adicionado!'}), 201
+    
+    except mysql.connector.Error as erro_banco:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro": "Erro com banco de dados."}),500
+    except Exception as erro :
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro": f"Erro inesperado encontrado. {str(erro)}"}),500
+        
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @cursos_bp.put('/<int:id>')
 def atualizar_cursos(id):
-    dados = request.get_json()
-    nome_novo = dados.get("nome")
-    carga_nova = dados.get("carga")
-    ano_novo = dados.get("ano")
-    totaulas_novo = dados.get("totaulas")
-    descricao_nova = dados.get("descricao")
+    cursor = None
+    conn = None
+    try:
+        dados = request.get_json()
+        if not dados:
+            return jsonify({"Erro": "Nenhum dado enviado."}),400
+        
+        if "nome" not in dados or "carga_horaria" not in dados or "professor_id" not in dados or "descricao" not in dados:
+            return jsonify({"Erro": "Dados enviados insuficientes."}),400
+        
+        nome_novo = dados.get("nome")
+        carga_nova = dados.get("carga_horaria")
+        professor_id_novo = dados.get("professor_id")
+        descricao_nova = dados.get("descricao")
 
-    conn = obter_conexao()
-    cursor = conn.cursor()
-    cursor.execute("update cursos set nome = %s, carga = %s, ano = %s, totaulas = %s, descricao = %s where  idcurso = %s;",(nome_novo, carga_nova, ano_novo, totaulas_novo, descricao_nova, id))
 
-    conn.commit()
-    cursor.close()
-    conn.close()
 
-    return jsonify({"Aviso" : f' Curso {nome_novo} atualizado com sucesso!'}), 200
+        conn = obter_conexao()
+        cursor = conn.cursor()
+        cursor.execute("update cursos set nome = %s, carga_horaria = %s, professor_id = %s, descricao = %s where  id = %s;",(nome_novo, carga_nova, professor_id_novo, descricao_nova, id))
 
-@cursos_bp.delete('<int:id>')
+        if cursor.rowcount == 0:
+            return jsonify({"Erro": " Curso inexistente."}),400
+
+        conn.commit()
+        return jsonify({"Aviso" : f' Curso {nome_novo} atualizado com sucesso!'}), 200
+    except mysql.connector.Error as erro_banco:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro": f"Erro com o banco de dados : {str(erro_banco)}."}),500
+    except Exception as erro:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro": f"Erro inesperado encontrado: {str(erro)}."}),500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@cursos_bp.delete('/<int:id>')
 def excluir_curso(id):
+    conn = None
+    cursor = None
 
-    conn = obter_conexao()
-    cursor = conn.cursor()
-    cursor.execute("delete from cursos where idcurso = %s;", (id,))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return jsonify({"Aviso" : f'Curso com ID {id} excluido com sucesso ! '}), 200
+    try:
+
+        conn = obter_conexao()
+        cursor = conn.cursor()
+        cursor.execute("delete from cursos where id = %s;", (id,))
+
+        if cursor.rowcount == 0:
+            return jsonify({"Erro": "Usuário inexistente."}),400
+        conn.commit()
+        return jsonify({"Aviso" : f'Curso com ID {id} excluido com sucesso ! '}), 200
+    
+    except mysql.connector.Error as erro_banco:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro": f"Erro com o banco de dados: {str(erro_banco)}."}),500
+    except Exception as erro:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro": f"Erro inesperado encontrado: {str(erro)}."}),500
+    
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    
 
 @cursos_bp.patch('/<int:id>')
 def atualizar_cursos_parcial(id):
-    dados = request.get_json()
+    conn = None
+    cursor = None
+    try:
+        dados = request.get_json()
 
-    if not dados :
-        return jsonify({"Erro": "Nenhum dado enviado!"}),400
+        if not dados :
+            return jsonify({"Erro": "Nenhum dado enviado!"}),400
 
-    campos_para_atualizar = []
-    valores = []
+        campos_para_atualizar = []
+        valores = []
 
-    if "nome" in dados:
-        campos_para_atualizar.append("nome = %s")
-        valores.append(dados.get("nome"))
-    if "carga" in dados:
-        campos_para_atualizar.append("carga = %s")
-        valores.append(dados.get("carga"))
-    if "ano" in dados:
-        campos_para_atualizar.append("ano = %s")
-        valores.append(dados.get("ano"))
-    if "totaulas" in dados:
-        campos_para_atualizar.append("totaulas = %s")
-        valores.append(dados.get("totaulas"))
-    if "descricao" in dados:
-        campos_para_atualizar.append("descricao = %s")
-        valores.append(dados.get("descricao"))
-    if not campos_para_atualizar:
-        return jsonify({"Erro": "Nenhum dado enviado para atualizar!"}),400
+        if "nome" in dados:
+            campos_para_atualizar.append("nome = %s")
+            valores.append(dados.get("nome"))
+        if "carga_horaria" in dados:
+            campos_para_atualizar.append("carga_horaria = %s")
+            valores.append(dados.get("carga_horaria"))
+        if "professor_id" in dados:
+            campos_para_atualizar.append("professor_id = %s")
+            valores.append(dados.get("professor_id"))
+        if "descricao" in dados:
+            campos_para_atualizar.append("descricao = %s")
+            valores.append(dados.get("descricao"))
+        if not campos_para_atualizar:
+            return jsonify({"Erro": "Nenhum dado enviado para atualizar!"}),400
 
 
-    valores.append(id)
+        valores.append(id)
 
-    comando_sql = f"update cursos set {',' .join(campos_para_atualizar)} where idcurso = %s ;"
+        comando_sql = f"update cursos set {',' .join(campos_para_atualizar)} where id = %s ;"
 
-    conn = obter_conexao()
-    cursor = conn.cursor()
-    cursor.execute(comando_sql, tuple(valores) )
-    conn.commit()
-    cursor.close()
-    conn.close()
+        conn = obter_conexao()
+        cursor = conn.cursor()
+        cursor.execute(comando_sql, tuple(valores) )
 
-    return jsonify({"Mensagem": f"Curso com id : {id} atualizado com sucesso!"}), 200
+        if cursor.rowcount == 0:
+            return jsonify({"Erro": "Usuário inexistente."}),400
+        conn.commit()
+        return jsonify({"Mensagem": f"Curso com id : {id} atualizado com sucesso!"}), 200
+    except mysql.connector.Error as erro_banco:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro": f"Erro com o banco de dados: {str(erro_banco)}."}),500
+    except Exception as erro:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro": f"Erro inesperado encontrado: {str(erro)}."}),500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
     
