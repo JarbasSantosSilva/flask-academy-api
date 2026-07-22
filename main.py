@@ -1,6 +1,8 @@
 from flask import Flask
 from routes.alunos_routes import alunos_bp
 from routes.cursos_routes import cursos_bp
+from routes.professor_routes import professor_bp
+
 
 app = Flask(__name__)
 
@@ -10,6 +12,7 @@ def saudar():
 
 app.register_blueprint(alunos_bp)
 app.register_blueprint(cursos_bp)
+app.register_blueprint(professor_bp)
 
 
 
