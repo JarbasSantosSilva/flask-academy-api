@@ -128,6 +128,59 @@ def excluir_professor(id):
         if conn:
             conn.close()
 
+@professor_bp.patch('/<int:id>')
+def atualizar_parcial(id):
+    conn = None
+    cursor = None
+    try:
+        dados = request.get_json()
+        if not dados:
+            return jsonify({"Erro": "Nenhum dado encontrado."}),400
+        campo_para_atualizar = []
+        valores = []
+
+        if "nome" in dados:
+            campo_para_atualizar.append("nome = %s")
+            valores.append(dados.get("nome"))
+        if "especialidade" in dados:
+            campo_para_atualizar.append("especialidade = %s")
+            valores.append(dados.get("especialidade"))
+        if not campo_para_atualizar:
+            return jsonify({"Erro":"Nenhum dado enviado para atualizar."}),400
+        valores.append(id)
+        comando_sql = f"update professor set {','.join(campo_para_atualizar)} where id = %s;"
+
+        conn = obter_conexao()
+        cursor = conn.cursor()
+        cursor.execute(comando_sql, tuple(valores))
+
+        if cursor.rowcount == 0:
+            return jsonify({"Erro": "Cadastro professor inexistente."}),400
+        conn.commit()
+        return jsonify({"Mensagem": f"Cadastro ID : {id} , atualizado. "}),200
+    except mysql.connector.Error as erro_banco:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro": "Erro com o banco de dados", "Detalhes": str(erro_banco)}),500
+    
+    except Exception as erro:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro": "Erro inesperado.", "Detalhes": str(erro)}),500
+    
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    
+    
+
+        
+
+        
+
+
 
 
     
