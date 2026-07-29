@@ -106,6 +106,80 @@ def atualizar_matricula(id):
         if conn:
             conn.close()
 
+@matricula_bp.delete('/<int:id>')
+def deletar_matricula(id):
+    conn = None
+    cursor = None
+    try:
+        conn = obter_conexao()
+        cursor = conn.cursor()
+        cursor.execute("delete from matriculas where id = %s",(id,))
+        if cursor.rowcount == 0:
+            return jsonify({"Erro": "Matricula inexistente."}),400
+        conn.commit()
+        return jsonify({"Mensagem": "Matricula excluida. "}),200
+    except mysql.connector.Error as erro_banco:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro":f"Erro com o banco de dados : {erro_banco}."}),500
+    except Exception as erro:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro":f"Erro inesperado : {erro} ."}),500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@matricula_bp.patch('/<int:id>')
+def atualizar_parcial(id):
+    conn = None
+    cursor = None
+    try:
+        dados = request.get_json()
+        if not dados:
+            return jsonify({"Erro":"Nenhum dado enviado pra atualizar."}),400
+        campo_para_atualizar = []
+        valores = []
+
+        if "aluno_id" in dados:
+            campo_para_atualizar.append("aluno_id = %s")
+            valores.append(dados.get("aluno_id"))
+        if "curso_id" in dados:
+            campo_para_atualizar.append("curso_id = %s")
+            valores.append(dados.get("curso_id"))
+        if "data_matricula" in dados:
+            campo_para_atualizar.append("data_matricula = %s")
+            valores.append(dados.get("data_matricula"))
+        if not campo_para_atualizar:
+            return jsonify({"Erro": "Nenhum dado enviado."}),400
+        valores.append(id)
+        comando_sql = f"update matriculas set {','.join(campo_para_atualizar)} where id = %s"
+
+        conn = obter_conexao()
+        cursor = conn.cursor()
+        cursor.execute(comando_sql, tuple(valores))
+        if cursor.rowcount == 0:
+            return jsonify({"Erro":"Matricula inexistente."}),400
+        conn.commit()
+        return jsonify({"Mensagem":"Matricula atualizada."}),200
+    except mysql.connector.Error as erro_banco:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro":f"Erro com o banco de dados : {erro_banco}."}),500
+    except Exception as erro:
+        if conn:
+            conn.rollback()
+        return jsonify({"Erro":f"Erro inesperado : {erro}"}),500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+    
+    
 
 
 
