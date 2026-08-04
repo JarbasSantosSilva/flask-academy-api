@@ -21,8 +21,8 @@ def cadastrar_aluno():
         if not str(dados.get("login")).strip() or not str(dados.get("senha")).strip():
             return jsonify({"Erro":"Login e senha são obrigatórios."}),400
 
-        login = dados.get("login")
-        senha = dados.get("senha")
+        login = dados.get("login").strip()
+        senha = dados.get("senha").strip()
         aluno_id = dados.get("aluno_id")
         nivel_acesso = dados.get("nivel_acesso","aluno")
 
@@ -38,6 +38,8 @@ def cadastrar_aluno():
     except mysql.connector.Error as erro_banco:
         if conn:
             conn.rollback()
+        if erro_banco.errno == 1062:
+            return jsonify({"erro": "Este login já está cadastrado."}),409
         return jsonify({"Erro": f"Erro com o banco de dados : {erro_banco} ."}),500
 
     except Exception as erro:
@@ -58,10 +60,10 @@ def login():
     try:
         dados = request.get_json()
         if not dados or not dados.get('login') or not dados.get('senha'):
-            return jsonify({"Erro":"Login e senha são dados obrigatórios."}),401
+            return jsonify({"Erro":"Login e senha são dados obrigatórios."}),400
 
-        login_usuario = dados.get('login')
-        senha_digitada = dados.get('senha')
+        login_usuario = dados.get('login').strip()
+        senha_digitada = dados.get('senha').strip()
 
         conn = obter_conexao()
         cursor = conn.cursor(dictionary=True)
@@ -70,7 +72,7 @@ def login():
         usuario = cursor.fetchone()
 
         if not usuario or not check_password_hash(usuario['senha'], senha_digitada):
-            return jsonify({"Erro":"Credenciais inválidas."}),400
+            return jsonify({"Erro":"Credenciais inválidas."}),401
 
         tempo_expiracao = datetime.datetime.now(datetime.timezone.utc) + (datetime.timedelta(hours = 8))
         payload = {
