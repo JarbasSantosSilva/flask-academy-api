@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify
 from banco import obter_conexao
 import mysql.connector
+from decorators import token_requerido
 
 cursos_bp = Blueprint('cursos',__name__, url_prefix='/cursos')
 
 @cursos_bp.get('/')
+@token_requerido
 def listar_cursos():
     conn = None
     cursor = None
@@ -29,6 +31,7 @@ def listar_cursos():
 
 
 @cursos_bp.post('/')
+@token_requerido
 def cadastrar_curso():
     cursor = None
     conn = None
@@ -68,6 +71,7 @@ def cadastrar_curso():
             conn.close()
 
 @cursos_bp.put('/<int:id>')
+@token_requerido
 def atualizar_cursos(id):
     cursor = None
     conn = None
@@ -111,6 +115,7 @@ def atualizar_cursos(id):
 
 
 @cursos_bp.delete('/<int:id>')
+@token_requerido
 def excluir_curso(id):
     conn = None
     cursor = None
@@ -143,6 +148,7 @@ def excluir_curso(id):
     
 
 @cursos_bp.patch('/<int:id>')
+@token_requerido
 def atualizar_cursos_parcial(id):
     conn = None
     cursor = None

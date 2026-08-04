@@ -1,10 +1,12 @@
 import mysql.connector
 from banco import obter_conexao
 from flask import Blueprint, request,jsonify
+from decorators import token_requerido
 
 matricula_bp = Blueprint('matricula', __name__, url_prefix='/matricula')
 
 @matricula_bp.get('/')
+@token_requerido
 def listar_matriculas():
     conn = None
     cursor = None
@@ -34,6 +36,7 @@ def listar_matriculas():
             conn.close()
 
 @matricula_bp.post('/')
+@token_requerido
 def criar_matricula():
     conn = None
     cursor = None
@@ -69,6 +72,7 @@ def criar_matricula():
             conn.close()
 
 @matricula_bp.put('/<int:id>')
+@token_requerido
 def atualizar_matricula(id):
     conn = None
     cursor = None
@@ -107,6 +111,7 @@ def atualizar_matricula(id):
             conn.close()
 
 @matricula_bp.delete('/<int:id>')
+@token_requerido
 def deletar_matricula(id):
     conn = None
     cursor = None
@@ -133,6 +138,7 @@ def deletar_matricula(id):
             conn.close()
 
 @matricula_bp.patch('/<int:id>')
+@token_requerido
 def atualizar_parcial(id):
     conn = None
     cursor = None

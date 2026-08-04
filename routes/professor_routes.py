@@ -1,10 +1,12 @@
 import mysql.connector
 from banco import obter_conexao
 from flask import Blueprint, request, jsonify
+from decorators import token_requerido
 
 professor_bp = Blueprint('professor',__name__, url_prefix='/professor')
 
 @professor_bp.get('/')
+@token_requerido
 def listar_professores():
     conn = None
     cursor = None
@@ -28,6 +30,7 @@ def listar_professores():
             conn.close()
     
 @professor_bp.post('/')
+@token_requerido
 def cadastrar_professor():
     conn = None
     cursor = None
@@ -64,6 +67,7 @@ def cadastrar_professor():
             conn.close()
 
 @professor_bp.put('/<int:id>')
+@token_requerido
 def atualizar_professor(id):    
     conn = None
     cursor = None
@@ -102,6 +106,7 @@ def atualizar_professor(id):
             conn.close()
 
 @professor_bp.delete('/<int:id>')
+@token_requerido
 def excluir_professor(id):
     conn = None
     cursor = None
@@ -129,6 +134,7 @@ def excluir_professor(id):
             conn.close()
 
 @professor_bp.patch('/<int:id>')
+@token_requerido
 def atualizar_parcial(id):
     conn = None
     cursor = None
